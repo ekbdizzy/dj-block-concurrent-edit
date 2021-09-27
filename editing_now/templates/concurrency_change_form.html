@@ -1,0 +1,12 @@
+{% extends "admin/change_form.html" %}
+
+{% block extrahead %}
+  <script>
+      // alert('{{ editing_model }} в данный момент редактируется пользователем {{ request.user }}');
+
+      let promise = fetch(`http://localhost:8000/is_editing/check/{{ editing_model }}/`)
+          .then(response => response.json())
+          .then(json => console.log(json))
+
+  </script>
+{% endblock %}
