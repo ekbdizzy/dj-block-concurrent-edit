@@ -1,12 +1,40 @@
 {% extends "admin/change_form.html" %}
 
 {% block extrahead %}
-  <script>
-      // alert('{{ editing_model }} в данный момент редактируется пользователем {{ request.user }}');
 
-      let promise = fetch(`http://localhost:8000/is_editing/check/{{ editing_model }}/`)
-          .then(response => response.json())
-          .then(json => console.log(json))
+  <script>
+      const host = 'http://localhost:8000'
+
+      <!-- Трекер активности пользователя. -->
+      const timeOut = 30000; // сколько должно пройти времени, чтобы пользователь стал неактивным
+      let lastActivityTimeStamp = new Date().getTime();
+      let userIsActive = false;
+
+      const fixLastActivity = () => {
+          // Если пользователь на странице редактирования активе, обновляется время последней активности.
+          window.addEventListener('mousemove', updateTimeStampActivity);
+          window.addEventListener('keypress', updateTimeStampActivity);
+          window.addEventListener('click', updateTimeStampActivity);
+      }
+      const updateTimeStampActivity = () => lastActivityTimeStamp = new Date().getTime();
+      const updateModel = (lastActivityTimeStamp, timeOut) => {
+          // если пользователь активный, то у EditingNow модели обновляется время последнего редактирования
+          const delta = new Date().getTime() - lastActivityTimeStamp;
+          userIsActive = delta < timeOut;
+          if (userIsActive) {
+              fetch(`${host}/is_editing/update/{{ editing_model }}/`,
+                  {
+                      method: 'UPDATE',
+                      headers: {"X-CSRFToken": '{{ csrf_token }}'},
+                  }).then(response => response.json())
+                  .then(json => console.log(json))
+          }
+      }
+      fixLastActivity();
+      setInterval(() => updateModel(lastActivityTimeStamp, timeOut), 5000);
+  </script>
+  <script>
+
 
   </script>
 {% endblock %}
