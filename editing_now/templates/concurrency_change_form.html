@@ -72,7 +72,23 @@
       }
       fixLastActivity();
       setInterval(() => updateModel(lastActivityTimeStamp, timeOut), 30000);
-
-
   </script>
+
+  <script type="text/javascript">
+      // Решение отсюда:
+      // https://stackoverflow.com/questions/23690666/check-if-my-website-is-open-in-another-tab
+      // Broadcast that you're opening a page.
+      localStorage.openpages = Date.now();
+      const onLocalStorageEvent = function (e) {
+          if (e.key == "openpages") {
+              // Listen if anybody else is opening the same page!
+              localStorage.page_available = Date.now();
+          }
+          if (e.key == "page_available") {
+              alert("One more page already open");
+          }
+      };
+      window.addEventListener('storage', onLocalStorageEvent, false);
+  </script>
+
 {% endblock %}
