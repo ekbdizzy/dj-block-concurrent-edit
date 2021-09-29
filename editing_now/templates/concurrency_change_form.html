@@ -5,6 +5,40 @@
   <script>
       const host = 'http://localhost:8000'
 
+      // При открытии страницы мы проверяем, редактируется ли уже эта модель
+      fetch(`${host}/is_editing/get/{{ editing_model_name }}/`)
+          .then(response => response.json())
+          .then(json => {
+              if (json.model_name && json.user !== '{{ request.user.username }}') {
+                  // Предупреждаем пользователя, что страница была открыта ранее другим пользователем.
+                  // Предлагаем редактировать ее либо покинуть.
+                  // Если пользователь соглашается редактировать, то у редактируемой модели обновляется пользователь.
+                  let changeUser = confirm(`
+                      Страница уже открыта ранее пользователем ${json.user}.
+                      Последнее время редактирования: ${json.edited_at}.
+                      Уверены, что хотите редактировать страницу?
+                      `);
+                  if (!changeUser) {
+                      history.back();
+                  } else {
+                      fetch(`${host}/is_editing/update_user/{{ editing_model_name }}/`,
+                          {
+                              method: 'UPDATE',
+                              headers: {"X-CSRFToken": '{{ csrf_token }}'},
+                          }).then(response => response.json())
+                          .then(json => console.log(json))
+                  }
+              } else if (json.model_name && json.user === '{{ request.user.username }}') {
+
+              } else {
+                  fetch(`${host}/is_editing/create/{{ editing_model_name }}/`,
+                      {
+                          method: 'POST',
+                          headers: {"X-CSRFToken": '{{ csrf_token }}'},
+                      }).then()
+              }
+          })
+
       // Трекер активности пользователя
 
       const timeOut = 200000; // сколько должно пройти времени, чтобы пользователь стал неактивным (2 минуты)
@@ -28,42 +62,17 @@
                       method: 'UPDATE',
                       headers: {"X-CSRFToken": '{{ csrf_token }}'},
                   }).then(response => response.json())
-                  .then(json => console.log(json))
+                  .then(json => {
+                          if (json.alert) {
+                              alert(`Пользователь ${json.user} начал редактировать страницу.`)
+                          }
+                      }
+                  )
           }
       }
       fixLastActivity();
       setInterval(() => updateModel(lastActivityTimeStamp, timeOut), 30000);
 
-
-      // При открытии страницы мы проверяем, редактируется ли уже эта модель
-      fetch(`${host}/is_editing/get/{{ editing_model_name }}/`)
-          .then(response => response.json())
-          .then(json => {
-              if (json.model_name) {
-                  // Предупреждаем пользователя, что страница была открыта ранее.
-                  // Предлагаем редактировать ее либо покинуть.
-                  let changeUser = confirm(`
-                      Страница уже открыта ранее пользователем ${json.user}.
-                      Уверены, что хотите редактировать страницу?
-                      `);
-                  if (!changeUser) {
-                      history.back();
-                  } else {
-                      fetch(`${host}/is_editing/update_user/{{ editing_model_name }}/`,
-                          {
-                              method: 'UPDATE',
-                              headers: {"X-CSRFToken": '{{ csrf_token }}'},
-                          }).then(response => response.json())
-                          .then(json => console.log(json))
-                  }
-              } else {
-                  fetch(`${host}/is_editing/create/{{ editing_model_name }}/`,
-                      {
-                          method: 'POST',
-                          headers: {"X-CSRFToken": '{{ csrf_token }}'},
-                      }).then()
-              }
-          })
 
   </script>
 {% endblock %}
