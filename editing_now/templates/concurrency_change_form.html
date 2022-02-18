@@ -5,7 +5,7 @@
   <script type="text/javascript">
       const host = 'http://localhost:8000'
       const userActivityTimeOut = 200000;  // The time before user becomes inactive (2 minutes).
-      const updateModelInterval = 30000; // Update interval time of the last edit (3 minutes).
+      const updateModelInterval = 30000; // Update interval time of the last edit (30 seconds).
       const modelName = '{{ editing_model_name }}';
       const CSRFToken = '{{ csrf_token }}'
       const updateUserUrl = `${host}/is_editing/update_user/${modelName}/`,
