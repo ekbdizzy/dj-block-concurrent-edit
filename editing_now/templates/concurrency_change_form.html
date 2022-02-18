@@ -2,89 +2,90 @@
 
 {% block extrahead %}
 
-  <script>
+  <script type="text/javascript">
       const host = 'http://localhost:8000'
+      const userActivityTimeOut = 200000;  // The time before user becomes inactive (2 minutes).
+      const updateModelInterval = 30000; // Update interval time of the last edit (3 minutes).
+      const modelName = '{{ editing_model_name }}';
+      const CSRFToken = '{{ csrf_token }}'
+      const updateUserUrl = `${host}/is_editing/update_user/${modelName}/`,
+          createEditingModelUrl = `${host}/is_editing/create/${modelName}/`,
+          checkModelIsEditingUrl = `${host}/is_editing/get/${modelName}/`,
+          updateLastEditTimeUrl = `${host}/is_editing/update/{{ editing_model_name }}/`;
 
-      // При открытии страницы мы проверяем, редактируется ли уже эта модель
-      fetch(`${host}/is_editing/get/{{ editing_model_name }}/`)
-          .then(response => response.json())
-          .then(json => {
-              if (json.model_name && json.user !== '{{ request.user.username }}') {
-                  // Предупреждаем пользователя, что страница была открыта ранее другим пользователем.
-                  // Предлагаем редактировать ее либо покинуть.
-                  // Если пользователь соглашается редактировать, то у редактируемой модели обновляется пользователь.
-                  let changeUser = confirm(`
-                      Страница уже открыта ранее пользователем ${json.user}.
-                      Последнее время редактирования: ${json.edited_at}.
-                      Уверены, что хотите редактировать страницу?
-                      `);
-                  if (!changeUser) {
-                      history.back();
-                  } else {
-                      fetch(`${host}/is_editing/update_user/{{ editing_model_name }}/`,
-                          {
-                              method: 'UPDATE',
-                              headers: {"X-CSRFToken": '{{ csrf_token }}'},
-                          }).then(response => response.json())
-                          .then(json => console.log(json))
-                  }
-              } else if (json.model_name && json.user === '{{ request.user.username }}') {
+      const confirmToEdit = ({user, edited_at}) => {
+      // Warn the user that the page was opened earlier by another user.
+      // Suggest to user edit or leaving it.
+      // If the user agrees to edit, for the edited model updates user.
+          return confirm(
+`Page was opened by user ${user} earlier.
+Last time it was edited at ${edited_at}.
+Are you sure you want edit this page?`);
+      }
 
-              } else {
-                  fetch(`${host}/is_editing/create/{{ editing_model_name }}/`,
-                      {
-                          method: 'POST',
-                          headers: {"X-CSRFToken": '{{ csrf_token }}'},
-                      }).then()
-              }
-          })
+      async function updateUser(url) {
+          const response = await fetch(url,
+              {method: 'UPDATE', headers: {"X-CSRFToken": CSRFToken}})
+          const result = await response.json()
+          console.log(result)
+      }
 
-      // Трекер активности пользователя
+      async function createEditingModel(url) {
+          await fetch(url, {method: 'POST', headers: {"X-CSRFToken": CSRFToken}})}
 
-      const timeOut = 200000; // сколько должно пройти времени, чтобы пользователь стал неактивным (2 минуты)
+      async function checkModelIsEditing(url) {
+          const response = await fetch(url)
+          const result = await response.json()
+          if (result.model_name && result.user !== '{{ request.user.username }}') {
+              let isNeedChangeUser = confirmToEdit(result)
+              isNeedChangeUser ? await updateUser(updateUserUrl) : history.back();
+          } else await createEditingModel(createEditingModelUrl)
+      }
+
+      async function updateLastEditTime(url) {
+          const response = await fetch(url,
+              {method: 'UPDATE', headers: {"X-CSRFToken": CSRFToken}})
+          const result = await response.json()
+          if (result.alert) {
+              alert(`User ${result.user} started edit this page.`)
+          }
+      }
+
+      // Check the page is editing now by another user.
+      checkModelIsEditing(checkModelIsEditingUrl)
+
+      // User activity tracker
+      const timeOut = userActivityTimeOut;
       let lastActivityTimeStamp = new Date().getTime();
       let userIsActive = false;
 
       const fixLastActivity = () => {
-          // Если пользователь на странице редактирования активе, обновляется время последней активности.
+          // If user is still active on the page, update time of last activity.
           window.addEventListener('mousemove', updateTimeStampActivity);
           window.addEventListener('keypress', updateTimeStampActivity);
           window.addEventListener('click', updateTimeStampActivity);
       }
       const updateTimeStampActivity = () => lastActivityTimeStamp = new Date().getTime();
+
       const updateModel = (lastActivityTimeStamp, timeOut) => {
-          // если пользователь активный, то у EditingNow модели обновляется время последнего редактирования
+          // If user is active, update last edit time in EditingNow model.
           const delta = new Date().getTime() - lastActivityTimeStamp;
           userIsActive = delta < timeOut;
-          if (userIsActive) {
-              fetch(`${host}/is_editing/update/{{ editing_model_name }}/`,
-                  {
-                      method: 'UPDATE',
-                      headers: {"X-CSRFToken": '{{ csrf_token }}'},
-                  }).then(response => response.json())
-                  .then(json => {
-                          if (json.alert) {
-                              alert(`Пользователь ${json.user} начал редактировать страницу.`)
-                          }
-                      }
-                  )
-          }
+          if (userIsActive) updateLastEditTime(updateLastEditTimeUrl)
       }
       fixLastActivity();
-      setInterval(() => updateModel(lastActivityTimeStamp, timeOut), 30000);
+      setInterval(() => updateModel(lastActivityTimeStamp, timeOut), updateModelInterval);
   </script>
 
   <script type="text/javascript">
-      // Решение отсюда:
-      // https://stackoverflow.com/questions/23690666/check-if-my-website-is-open-in-another-tab
       // Broadcast that you're opening a page.
-      localStorage.openpages = Date.now();
-      const onLocalStorageEvent = function (e) {
-          if (e.key == "openpages") {
-              // Listen if anybody else is opening the same page!
-              localStorage.page_available = Date.now();
+      localStorage.openPage = Date.now();
+      const onLocalStorageEvent = (event) => {
+          if (event.key === "openPage") {
+              // Listen if anybody else is opening the same page.
+              localStorage.pageAvailable = Date.now();
           }
-          if (e.key == "page_available") {
+          if (event.key === "pageAvailable") {
               alert("One more page already open");
           }
       };
