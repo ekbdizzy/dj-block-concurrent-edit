@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'corsheaders',
-    'editing_now',
+    'locked_models',
     'post',
 ]
 

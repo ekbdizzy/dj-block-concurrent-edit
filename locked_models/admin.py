@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import EditingNow
+from .models import LockedModel
 
 
-@admin.register(EditingNow)
-class EditingNowAdmin(admin.ModelAdmin):
+@admin.register(LockedModel)
+class LockedModelAdmin(admin.ModelAdmin):
     list_display = ('model_name',
                     'user',
                     'is_created',

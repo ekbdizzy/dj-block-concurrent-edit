@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class EditingNowConfig(AppConfig):
+class LockedModelConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'editing_now'
+    name = 'locked_models'

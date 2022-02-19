@@ -6,7 +6,7 @@ from django.conf import settings
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('post/', include('post.urls')),
-    path('is_editing/', include('editing_now.urls')),
+    path('is_editing/', include('locked_models.urls')),
 ]
 
 if settings.DEBUG:

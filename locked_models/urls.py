@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import is_editing_now, create_new_editing_model, update_editing_now_model, update_user_in_editing_now_model
 
-app_name = 'editing_now'
+app_name = 'locked_models'
 
 urlpatterns = [
     path('get/<str:model_name>/', is_editing_now),

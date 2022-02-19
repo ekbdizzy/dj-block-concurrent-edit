@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('editing_now', '0002_editingnow_user'),
+        ('locked_models', '0002_editingnow_user'),
     ]
 
     operations = [

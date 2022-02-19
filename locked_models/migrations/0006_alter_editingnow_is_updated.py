@@ -7,7 +7,7 @@ import django.utils.timezone
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('editing_now', '0005_alter_editingnow_is_updated'),
+        ('locked_models', '0005_alter_editingnow_is_updated'),
     ]
 
     operations = [
