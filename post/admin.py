@@ -11,8 +11,8 @@ class PostAdmin(admin.ModelAdmin):
     change_form_template = 'concurrency_change_form.html'
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        editing_model_name = f'{self.model._meta.model_name}_{object_id}'
-        extra_context = {'editing_model_name': editing_model_name}
+        locked_model_name = f'{self.model._meta.model_name}_{object_id}'
+        extra_context = {'locked_model_name': locked_model_name}
         return super(PostAdmin, self).change_view(request, object_id, extra_context=extra_context)
 
     def save_model(self, request, obj, form, change):

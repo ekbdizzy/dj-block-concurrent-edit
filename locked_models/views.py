@@ -1,53 +1,55 @@
+import http.client
+from http import HTTPStatus
+
 from django.http import JsonResponse
-from locked_models.models import LockedModel
 from django.utils import timezone
 
+from locked_models.models import LockedModel
 
-def is_editing_now(request, model_name):
+
+def locked_model_view(request, model_name):
     try:
-        editing_now_object = LockedModel.objects.get(model_name=model_name)
-        return JsonResponse({'model_name': model_name,
-                             'user': editing_now_object.user.username,
-                             'edited_at': editing_now_object.is_updated.strftime('%d.%m.%y %H:%M')})
+        locked_model = LockedModel.objects.select_related('user').get(model_name=model_name)
     except LockedModel.DoesNotExist:
-        return JsonResponse({'model_name': None})
+        locked_model = None
 
+    if request.method == 'GET':
+        if locked_model:
+            return JsonResponse({'model_name': model_name,
+                                 'user': locked_model.user.username,
+                                 'edited_at': locked_model.is_updated.strftime('%d.%m.%y %H:%M')},
+                                status=HTTPStatus.OK)
+        return JsonResponse({'model_name': None}, status=http.client.NOT_FOUND)
 
-def create_new_editing_model(request, model_name):
     if request.method == 'POST':
-        LockedModel.objects.create(
-            model_name=model_name,
-            user=request.user
-        )
-        return JsonResponse({'model_name': model_name})
+        locked_model = LockedModel.objects.create(model_name=model_name, user=request.user)
+        return JsonResponse({'model_name': locked_model.model_name}, status=HTTPStatus.CREATED)
 
-
-def update_editing_now_model(request, model_name):
-    if request.method == 'UPDATE':
+    if request.method == 'PATCH':
         try:
-            editing_model = LockedModel.objects.select_related('user').get(model_name=model_name)
-            if editing_model.user == request.user:
-                editing_model.is_updated = timezone.now()
-                editing_model.save()
-                return JsonResponse({'model_name': "updated"})
+            locked_model = LockedModel.objects.select_related('user').get(model_name=model_name)
+            if locked_model.user == request.user:
+                locked_model.is_updated = timezone.now()
+                locked_model.save()
+                return JsonResponse({'model_name': "updated"}, status=HTTPStatus.OK)
             else:
                 return JsonResponse(
                     {'alert': 'Пользователь сменился',
-                     'user': editing_model.user.username}
+                     'user': locked_model.user.username},
+                    status=HTTPStatus.ACCEPTED
                 )
         except LockedModel.DoesNotExist:
-            LockedModel.objects.create(
-                model_name=model_name,
-                user=request.user
-            )
-            return JsonResponse({'model_name': "created"})
+            LockedModel.objects.create(model_name=model_name, user=request.user)
+            return JsonResponse({'model_name': model_name}, status=HTTPStatus.CREATED)
 
-    return JsonResponse({'error': 'method is not valid'})
+    return JsonResponse({'error': 'Method is not allowed'}, status=HTTPStatus.METHOD_NOT_ALLOWED)
 
 
-def update_user_in_editing_now_model(request, model_name):
-    if request.method == 'UPDATE':
+def update_locked_model_user_view(request, model_name):
+    if request.method == 'PUT':
         LockedModel.objects.filter(model_name=model_name).update(
             is_updated=timezone.now(), user=request.user)
-        return JsonResponse({'model_name': "updated"})
-    return JsonResponse({'error': 'method is not valid'})
+        return JsonResponse({'model_name': model_name,
+                             'user': request.user.username},
+                            status=HTTPStatus.ACCEPTED)
+    return JsonResponse({'error': 'Method is not allowed'}, status=HTTPStatus.METHOD_NOT_ALLOWED)

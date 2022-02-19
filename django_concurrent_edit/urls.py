@@ -4,9 +4,9 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.conf import settings
 
 urlpatterns = [
+    path('', include('locked_models.urls')),
     path('admin/', admin.site.urls),
     path('post/', include('post.urls')),
-    path('is_editing/', include('locked_models.urls')),
 ]
 
 if settings.DEBUG:

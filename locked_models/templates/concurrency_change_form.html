@@ -6,12 +6,10 @@
       const host = 'http://localhost:8000'
       const userActivityTimeOut = 200000;  // The time before user becomes inactive (2 minutes).
       const updateModelInterval = 30000; // Update interval time of the last edit (30 seconds).
-      const modelName = '{{ editing_model_name }}';
+      const modelName = '{{ locked_model_name }}';
       const CSRFToken = '{{ csrf_token }}'
-      const updateUserUrl = `${host}/is_editing/update_user/${modelName}/`,
-          createEditingModelUrl = `${host}/is_editing/create/${modelName}/`,
-          checkModelIsEditingUrl = `${host}/is_editing/get/${modelName}/`,
-          updateLastEditTimeUrl = `${host}/is_editing/update/{{ editing_model_name }}/`;
+      const lockedModelUrl = `${host}/locked_model/${modelName}/`
+      const updateUserUrl = `${host}/locked_model/${modelName}/user/`
 
       const confirmToEdit = ({user, edited_at}) => {
       // Warn the user that the page was opened earlier by another user.
@@ -25,26 +23,28 @@ Are you sure you want edit this page?`);
 
       async function updateUser(url) {
           const response = await fetch(url,
-              {method: 'UPDATE', headers: {"X-CSRFToken": CSRFToken}})
+              {method: 'PUT', headers: {"X-CSRFToken": CSRFToken}})
           const result = await response.json()
           console.log(result)
       }
 
-      async function createEditingModel(url) {
+      async function createLockedModel(url) {
           await fetch(url, {method: 'POST', headers: {"X-CSRFToken": CSRFToken}})}
 
-      async function checkModelIsEditing(url) {
+      async function checkModelIsLocked(url) {
           const response = await fetch(url)
           const result = await response.json()
           if (result.model_name && result.user !== '{{ request.user.username }}') {
               let isNeedChangeUser = confirmToEdit(result)
-              isNeedChangeUser ? await updateUser(updateUserUrl) : history.back();
-          } else await createEditingModel(createEditingModelUrl)
+              if (isNeedChangeUser) { await updateUser(updateUserUrl) } else history.back();
+          } else if (!result.model_name) {
+              await createLockedModel(lockedModelUrl)
+          }
       }
 
       async function updateLastEditTime(url) {
           const response = await fetch(url,
-              {method: 'UPDATE', headers: {"X-CSRFToken": CSRFToken}})
+              {method: 'PATCH', headers: {"X-CSRFToken": CSRFToken}})
           const result = await response.json()
           if (result.alert) {
               alert(`User ${result.user} started edit this page.`)
@@ -52,7 +52,7 @@ Are you sure you want edit this page?`);
       }
 
       // Check the page is editing now by another user.
-      checkModelIsEditing(checkModelIsEditingUrl)
+      checkModelIsLocked(lockedModelUrl)
 
       // User activity tracker
       const timeOut = userActivityTimeOut;
@@ -71,7 +71,7 @@ Are you sure you want edit this page?`);
           // If user is active, update last edit time in EditingNow model.
           const delta = new Date().getTime() - lastActivityTimeStamp;
           userIsActive = delta < timeOut;
-          if (userIsActive) updateLastEditTime(updateLastEditTimeUrl)
+          if (userIsActive) updateLastEditTime(lockedModelUrl)
       }
       fixLastActivity();
       setInterval(() => updateModel(lastActivityTimeStamp, timeOut), updateModelInterval);
