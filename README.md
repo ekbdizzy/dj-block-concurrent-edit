@@ -1,22 +1,23 @@
-# django_concurrent_edit
+## Django block concurrent edit
+Simple lock implementation from concurrent editing in admin panel.
 
-Django extension for block concurrent editing pages in admin panel.
+### Use case 1
+1. User1 has opened model for edit. The model has locked.
+2. User2 has opened same model for edit. User2 will receive a warning that the current model is being edited by the User1 within a timestamp of the last edit and suggestion to leave this page.
+3. If User2 has ignored this warning and continue to edit current model, User1 will receive a warning that the current model is being edited by the User2.
 
-# Логика
+### Use case 2
+1. User1 has opened model for edit and has not finished it.
+2. After some time User1 has opened new tab with the same model:
+3. User1 will receive a warning that he has more than one active tab with the same editing model.
 
-Если один пользователь открывает пост для редактирования, то при открытии у второго срабатывает предупреждение, 
-что пост открыт другим пользователем и указано последнее время редактирования (пока в UTC).
 
-Если второй пользователь начинает редактировать пост, несмотря на предупреждение, то у первого (в течении 30 сек.)
-срабатывает alert, что этот пост начал редактировать другой пользователь.
+## How does it works:
+Methods `change_view` and `save_model` updated inside `admin.py` of locked model.
+Admin's template `change_form_template` extended with JS.
 
-Если у одного пользователя открыто больше одной вкладки, то на второй срабатывает alert, что вкладок больше одной.
+#### Database backend:
+By default tracking of changes is within a `locked_model.models.LockedModel`. DB queries are made every 30 seconds only if locked_model_editor is active. If the locked_model_editor is not active for more than 2 minutes, requests are stopped.
 
-# Техническая реализация
-В admin.py редактируемой модели расширены методы `change_view` и `save_model`.
-Также расширен template админки `change_form_template`: добавлен код JS.
-
-Отслеживание изменений происходит через созданную модель `editing_now.models.EditingNow`. Запросы в базу отправляются
-только при активности пользователя на странице раз в 30 секунд. Если пользователь на вкладке не активен более 2 минут,
-запросы прекращаются. 
-
+#### Redis backend:
+Not finished yet.
