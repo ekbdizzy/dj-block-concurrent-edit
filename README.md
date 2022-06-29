@@ -12,7 +12,7 @@ Simple lock implementation from concurrent editing in admin panel.
 3. User1 will receive a warning that he has more than one active tab with the same editing model.
 
 
-## How does it works:
+## How does it work:
 Methods `change_view` and `save_model` updated inside `admin.py` of locked model.
 Admin's template `change_form_template` extended with JS.
 
